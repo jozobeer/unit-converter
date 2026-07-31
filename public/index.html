@@ -1,5 +1,361 @@
 <!doctype html>
 <html lang="ja">
-<head><meta charset="utf-8"><title>単位換算ツール</title></head>
-<body><h1>単位換算ツール</h1><p>builder がこのファイルを実装で置き換えます。</p></body>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>単位換算ツール</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%231a3a4a'/%3E%3Cpath d='M6 10h14M6 14h10M6 18h14M6 22h8' stroke='%2378c4a8' stroke-width='1.6' stroke-linecap='round'/%3E%3Cpath d='M20 8l4 4-4 4M26 20l-4 4 4 4' fill='none' stroke='%23e8b86d' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+  <style>
+    :root {
+      --bg-deep: #0f2a36;
+      --bg-mid: #163a4a;
+      --surface: rgba(255, 255, 255, 0.08);
+      --surface-strong: rgba(255, 255, 255, 0.12);
+      --border: rgba(255, 255, 255, 0.16);
+      --text: #eef6f8;
+      --text-muted: #9bb8c4;
+      --accent: #78c4a8;
+      --accent-warm: #e8b86d;
+      --focus: #8fd4bc;
+      --shadow: 0 18px 48px rgba(8, 24, 32, 0.45);
+      --radius: 14px;
+      --font-display: "Iowan Old Style", "Palatino Linotype", Palatino, "Hiragino Mincho ProN", "Yu Mincho", serif;
+      --font-body: "Avenir Next", "Segoe UI", "Hiragino Sans", "Noto Sans JP", sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: var(--font-body);
+      color: var(--text);
+      background:
+        radial-gradient(ellipse 80% 50% at 10% 0%, rgba(120, 196, 168, 0.18), transparent 55%),
+        radial-gradient(ellipse 70% 45% at 90% 10%, rgba(232, 184, 109, 0.14), transparent 50%),
+        linear-gradient(165deg, var(--bg-deep) 0%, var(--bg-mid) 45%, #124055 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
+    }
+
+    .app {
+      width: min(100%, 440px);
+      padding: 2rem 1.75rem 1.75rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: calc(var(--radius) + 4px);
+      backdrop-filter: blur(12px);
+      box-shadow: var(--shadow);
+      animation: rise 0.55s ease-out;
+    }
+
+    @keyframes rise {
+      from {
+        opacity: 0;
+        transform: translateY(12px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .brand {
+      margin: 0 0 0.35rem;
+      font-family: var(--font-display);
+      font-size: clamp(2rem, 6vw, 2.45rem);
+      font-weight: 400;
+      letter-spacing: 0.01em;
+      line-height: 1.15;
+    }
+
+    .lede {
+      margin: 0 0 1.5rem;
+      color: var(--text-muted);
+      font-size: 0.95rem;
+      line-height: 1.5;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 0.4rem;
+      margin-bottom: 1.5rem;
+      padding: 0.3rem;
+      background: rgba(0, 0, 0, 0.22);
+      border-radius: 999px;
+    }
+
+    .tab {
+      flex: 1;
+      border: none;
+      border-radius: 999px;
+      padding: 0.55rem 0.75rem;
+      font: inherit;
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      background: transparent;
+      cursor: pointer;
+      transition: background 0.2s ease, color 0.2s ease, transform 0.15s ease;
+    }
+
+    .tab:hover {
+      color: var(--text);
+    }
+
+    .tab[aria-pressed="true"] {
+      color: var(--bg-deep);
+      background: var(--accent);
+      box-shadow: 0 4px 14px rgba(120, 196, 168, 0.35);
+    }
+
+    .tab:active {
+      transform: scale(0.98);
+    }
+
+    .panel {
+      display: flex;
+      flex-direction: column;
+      gap: 0.85rem;
+    }
+
+    .row {
+      display: flex;
+      gap: 0.55rem;
+      align-items: stretch;
+    }
+
+    .row input,
+    .row select {
+      font: inherit;
+      color: var(--text);
+      background: var(--surface-strong);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 0.85rem 0.9rem;
+      outline: none;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .row input {
+      flex: 1 1 auto;
+      min-width: 0;
+      font-size: 1.15rem;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .row select {
+      flex: 0 1 46%;
+      max-width: 11.5rem;
+      cursor: pointer;
+    }
+
+    .row input::placeholder {
+      color: rgba(155, 184, 196, 0.7);
+    }
+
+    .row input:focus,
+    .row select:focus {
+      border-color: var(--focus);
+      box-shadow: 0 0 0 3px rgba(143, 212, 188, 0.25);
+    }
+
+    .swap {
+      align-self: center;
+      width: 2.4rem;
+      height: 2.4rem;
+      display: grid;
+      place-items: center;
+      color: var(--accent-warm);
+      font-size: 1.25rem;
+      border: 1px solid rgba(232, 184, 109, 0.35);
+      border-radius: 50%;
+      background: rgba(232, 184, 109, 0.08);
+      user-select: none;
+      animation: pulse 2.8s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); opacity: 0.85; }
+      50% { transform: scale(1.05); opacity: 1; }
+    }
+
+    @media (max-width: 420px) {
+      .app {
+        padding: 1.5rem 1.15rem 1.25rem;
+      }
+
+      .row {
+        flex-direction: column;
+      }
+
+      .row select {
+        max-width: none;
+        flex: 1 1 auto;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <h1 class="brand">単位換算ツール</h1>
+    <p class="lede">長さ・重さ・温度を、入力するだけで双方向に換算します。</p>
+
+    <div class="tabs" role="group" aria-label="カテゴリ">
+      <button type="button" class="tab" data-category="length" aria-pressed="true">長さ</button>
+      <button type="button" class="tab" data-category="weight" aria-pressed="false">重さ</button>
+      <button type="button" class="tab" data-category="temperature" aria-pressed="false">温度</button>
+    </div>
+
+    <div class="panel">
+      <div class="row">
+        <input id="inputA" type="text" inputmode="decimal" placeholder="数値を入力" aria-label="変換元の値" autocomplete="off">
+        <select id="unitA" aria-label="変換元の単位"></select>
+      </div>
+      <div class="swap" aria-hidden="true">⇄</div>
+      <div class="row">
+        <input id="inputB" type="text" inputmode="decimal" placeholder="数値を入力" aria-label="変換先の値" autocomplete="off">
+        <select id="unitB" aria-label="変換先の単位"></select>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    const CATEGORIES = {
+      length: {
+        label: "長さ",
+        units: [
+          { id: "mm", label: "ミリメートル (mm)", toBase: (v) => v / 1000, fromBase: (v) => v * 1000 },
+          { id: "cm", label: "センチメートル (cm)", toBase: (v) => v / 100, fromBase: (v) => v * 100 },
+          { id: "m", label: "メートル (m)", toBase: (v) => v, fromBase: (v) => v },
+          { id: "km", label: "キロメートル (km)", toBase: (v) => v * 1000, fromBase: (v) => v / 1000 },
+          { id: "in", label: "インチ (in)", toBase: (v) => v * 0.0254, fromBase: (v) => v / 0.0254 },
+          { id: "ft", label: "フィート (ft)", toBase: (v) => v * 0.3048, fromBase: (v) => v / 0.3048 },
+        ],
+      },
+      weight: {
+        label: "重さ",
+        units: [
+          { id: "mg", label: "ミリグラム (mg)", toBase: (v) => v / 1e6, fromBase: (v) => v * 1e6 },
+          { id: "g", label: "グラム (g)", toBase: (v) => v / 1000, fromBase: (v) => v * 1000 },
+          { id: "kg", label: "キログラム (kg)", toBase: (v) => v, fromBase: (v) => v },
+          { id: "t", label: "トン (t)", toBase: (v) => v * 1000, fromBase: (v) => v / 1000 },
+          { id: "lb", label: "ポンド (lb)", toBase: (v) => v * 0.45359237, fromBase: (v) => v / 0.45359237 },
+          { id: "oz", label: "オンス (oz)", toBase: (v) => v * 0.028349523125, fromBase: (v) => v / 0.028349523125 },
+        ],
+      },
+      temperature: {
+        label: "温度",
+        units: [
+          { id: "c", label: "摂氏 (℃)", toBase: (v) => v, fromBase: (v) => v },
+          { id: "f", label: "華氏 (℉)", toBase: (v) => (v - 32) * 5 / 9, fromBase: (v) => v * 9 / 5 + 32 },
+          { id: "k", label: "ケルビン (K)", toBase: (v) => v - 273.15, fromBase: (v) => v + 273.15 },
+        ],
+      },
+    };
+
+    const DEFAULTS = {
+      length: { a: "m", b: "cm" },
+      weight: { a: "kg", b: "g" },
+      temperature: { a: "c", b: "f" },
+    };
+
+    const inputA = document.getElementById("inputA");
+    const inputB = document.getElementById("inputB");
+    const unitA = document.getElementById("unitA");
+    const unitB = document.getElementById("unitB");
+    const tabs = document.querySelectorAll(".tab");
+
+    let currentCategory = "length";
+    let activeSide = "a";
+
+    function convert(value, fromUnit, toUnit) {
+      return toUnit.fromBase(fromUnit.toBase(value));
+    }
+
+    function formatResult(num) {
+      if (!Number.isFinite(num)) return "";
+      return String(Number(num.toPrecision(12)));
+    }
+
+    function parseInput(raw) {
+      const trimmed = String(raw).trim();
+      if (trimmed === "") return null;
+      const normalized = trimmed.replace(",", ".");
+      if (!/^[+-]?(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?$/.test(normalized)) return null;
+      const value = Number(normalized);
+      return Number.isFinite(value) ? value : null;
+    }
+
+    function findUnit(unitId) {
+      return CATEGORIES[currentCategory].units.find((unit) => unit.id === unitId);
+    }
+
+    function fillUnitSelect(select, selectedId) {
+      const units = CATEGORIES[currentCategory].units;
+      select.innerHTML = "";
+      for (const unit of units) {
+        const option = document.createElement("option");
+        option.value = unit.id;
+        option.textContent = unit.label;
+        if (unit.id === selectedId) option.selected = true;
+        select.appendChild(option);
+      }
+    }
+
+    function selectCategory(categoryId) {
+      currentCategory = categoryId;
+      const defaults = DEFAULTS[categoryId];
+
+      for (const tab of tabs) {
+        tab.setAttribute("aria-pressed", String(tab.dataset.category === categoryId));
+      }
+
+      fillUnitSelect(unitA, defaults.a);
+      fillUnitSelect(unitB, defaults.b);
+      inputA.value = "";
+      inputB.value = "";
+      activeSide = "a";
+    }
+
+    function handleInput(sourceSide) {
+      activeSide = sourceSide;
+      const sourceInput = sourceSide === "a" ? inputA : inputB;
+      const targetInput = sourceSide === "a" ? inputB : inputA;
+      const fromSelect = sourceSide === "a" ? unitA : unitB;
+      const toSelect = sourceSide === "a" ? unitB : unitA;
+
+      const parsed = parseInput(sourceInput.value);
+      if (parsed === null) {
+        targetInput.value = "";
+        return;
+      }
+
+      const fromUnit = findUnit(fromSelect.value);
+      const toUnit = findUnit(toSelect.value);
+      targetInput.value = formatResult(convert(parsed, fromUnit, toUnit));
+    }
+
+    function refreshFromActiveSide() {
+      handleInput(activeSide);
+    }
+
+    for (const tab of tabs) {
+      tab.addEventListener("click", () => {
+        selectCategory(tab.dataset.category);
+      });
+    }
+
+    inputA.addEventListener("input", () => handleInput("a"));
+    inputB.addEventListener("input", () => handleInput("b"));
+    unitA.addEventListener("change", refreshFromActiveSide);
+    unitB.addEventListener("change", refreshFromActiveSide);
+
+    selectCategory("length");
+  </script>
+</body>
 </html>
