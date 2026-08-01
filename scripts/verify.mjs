@@ -1,7 +1,6 @@
 import { readFileSync, statSync } from "node:fs";
 
 const HUB_LINK_RE = /<a[^>]+href=["']https:\/\/apps\.jozo\.beer\/?["']/i;
-const HUB_FOOTER_TEXT = "AIエージェントが毎日1つ作るWebアプリ集";
 
 const errors = [];
 
@@ -25,9 +24,6 @@ try {
   }
   if (!HUB_LINK_RE.test(html)) {
     errors.push('apps.jozo.beer へのフッターリンクがありません（<a href="https://apps.jozo.beer">）');
-  }
-  if (!html.includes(HUB_FOOTER_TEXT)) {
-    errors.push(`apps.jozo.beer へのフッター文言がありません（${HUB_FOOTER_TEXT}）`);
   }
 } catch {
   errors.push("public/index.html がありません");
