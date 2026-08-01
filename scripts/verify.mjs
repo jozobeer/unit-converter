@@ -1,6 +1,18 @@
 import { readFileSync, statSync } from "node:fs";
 
+const HUB_LINK_RE = /<a[^>]+href=["']https:\/\/apps\.jozo\.beer\/?["']/i;
+const HUB_FOOTER_TEXT = "AIエージェントが毎日1つ作るWebアプリ集";
+
 const errors = [];
+
+function requireFile(path, message) {
+  try {
+    statSync(path);
+  } catch {
+    errors.push(message);
+  }
+}
+
 try {
   const html = readFileSync("public/index.html", "utf-8");
   if (html.trim().length < 100) errors.push("public/index.html が小さすぎます");
@@ -11,24 +23,20 @@ try {
   if (!/<link[^>]+rel=["']?[^"'>]*icon/i.test(html)) {
     errors.push('faviconがありません（<link rel="icon" href="data:..."> をインラインで入れる）');
   }
+  if (!HUB_LINK_RE.test(html)) {
+    errors.push('apps.jozo.beer へのフッターリンクがありません（<a href="https://apps.jozo.beer">）');
+  }
+  if (!html.includes(HUB_FOOTER_TEXT)) {
+    errors.push(`apps.jozo.beer へのフッター文言がありません（${HUB_FOOTER_TEXT}）`);
+  }
 } catch {
   errors.push("public/index.html がありません");
 }
-try {
-  statSync("PLAN.md");
-} catch {
-  errors.push("PLAN.md がありません（plannerが未実行）");
-}
-try {
-  statSync("README.md");
-} catch {
-  errors.push("README.md がありません（テンプレートから削除しないこと）");
-}
-try {
-  statSync("wrangler.jsonc");
-} catch {
-  errors.push("wrangler.jsonc がありません");
-}
+
+requireFile("PLAN.md", "PLAN.md がありません（plannerが未実行）");
+requireFile("README.md", "README.md がありません（テンプレートから削除しないこと）");
+requireFile("wrangler.jsonc", "wrangler.jsonc がありません");
+
 if (errors.length > 0) {
   console.error("verify失敗:\n" + errors.map((e) => `- ${e}`).join("\n"));
   process.exit(1);
