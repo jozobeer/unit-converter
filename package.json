@@ -3,9 +3,11 @@
   "private": true,
   "scripts": {
     "verify": "node scripts/verify.mjs",
-    "deploy": "wrangler deploy"
+    "deploy": "wrangler deploy",
+    "test": "playwright test"
   },
   "devDependencies": {
-    "wrangler": "^4"
+    "wrangler": "^4",
+    "@playwright/test": "1.62.1"
   }
 }
