@@ -1,24 +1,56 @@
 # 単位換算ツール
 
-このリポジトリは kojo が生成した単一ページWebアプリです。
+長さ・重さ・温度の3カテゴリをタブで切り替え、左右の入力欄で双方向にリアルタイム換算する静的単一ページアプリ。
 
-## アイデア
+## アプリ概要と構成
 
-# 単位換算ツール
+- エントリ: `public/index.html`（CSS/JS インライン、フレームワークなし）
+- カテゴリ: `.tab[data-category]`（`length` / `weight` / `temperature`）。`aria-pressed` で選択状態を表現。切替時は両入力をクリアし、デフォルト単位をセットする
+- デフォルト単位: 長さ `m`↔`cm`、重さ `kg`↔`g`、温度 `c`↔`f`
+- 単位一覧:
+  - 長さ: mm / cm / m / km / in / ft（基準: m）
+  - 重さ: mg / g / kg / t / lb / oz（基準: kg）
+  - 温度: ℃ / ℉ / K（基準: ℃。オフセット付き変換）
+- UI: `#inputA` / `#unitA` と `#inputB` / `#unitB`。`input` / `change` で即時換算
+- 変換: `convert(value, fromUnit, toUnit)` — `toBase` → `fromBase` の2段。`formatResult` は `toPrecision(12)` で浮動小数誤差を吸収
+- 入力検証: `parseInput` — 空・非数値は `null`。対向欄を空にし、エラー表示や NaN は出さない
+- テスト: `tests/app.spec.ts`（Playwright、`file://` で `public/index.html` を開く）
+- 配信: Cloudflare Workers assets（`wrangler.jsonc`）
 
-長さ・重さ・温度など日常でよく使う単位をリアルタイムで相互変換する静的単一ページアプリ。カテゴリを選択し、片方の入力欄に数値を入れるともう片方に自動で変換結果が表示される。
+現状の仕様の正は README.md と `tests/app.spec.ts` である。`PLAN.md` は初回実装時の計画（歴史的文書）であり、受け入れ条件の最新ソースとしては扱わない。
 
-## 受け入れ条件の種
+## 技術スタック（不変）
 
-- 長さ・重さ・温度の3カテゴリが選択でき、カテゴリごとに正しい単位の組み合わせが表示される
-- 一方の入力欄に数値を入力すると、もう一方の欄に正しく変換された値が即座に反映される
-- 数値以外の入力や空欄の場合にエラーにならず、変換結果欄が空またはプレースホルダー表示になる
+- バニラJS・単一 `public/index.html`（CSS/JSインライン）・ビルドなし
+- 配信: Cloudflare Workers assets（`wrangler.jsonc`）
+- テスト: Playwright（`tests/app.spec.ts`、`npm test`）
+- 保守時もこのスタックを維持すること。フレームワーク・ビルドツール・宣言外ライブラリの導入は禁止
 
+## 品質不変条件
 
-## 制約
+次を壊してはならない。変更後は必ず `npm run verify` が通る状態を維持すること。
 
-- 静的アプリ（`public/` 配下のみ）。サーバコード・外部API・ビルドツールは使わない
-- `public/index.html` を単一ファイルで完結させる（CSS/JSインライン可）
-- favicon を `<link rel="icon" href="data:image/svg+xml,...">` のインライン data URI で含める（外部ファイル・外部URL不可。アプリのテーマに合った絵柄にする）
-- README.md はテンプレートが生成済み。削除しないこと
-- 完成条件: PLAN.md の受け入れ条件をすべて満たし、`npm run verify` が通ること
+- **favicon**: `<link rel="icon" href="data:image/svg+xml,...">` のインライン data URI（外部ファイル・外部 URL 不可）
+- **フッター**: hub（apps.jozo.beer）への導線。リンク先 `https://apps.jozo.beer` とリンクテキスト `apps.jozo.beer` は変えない
+
+```html
+<footer style="margin-top:3rem;text-align:center;font-size:.8rem;opacity:.6">
+  <a href="https://apps.jozo.beer" style="color:inherit">apps.jozo.beer</a>
+</footer>
+```
+
+スタイル（リンク色を含む）はテーマに合わせて調整してよい。リンク色を変える場合は背景とのコントラストを確保すること。body が flex/grid のセンタリングレイアウトのときは、`flex-direction: column` にするかメインコンテナ末尾に置き、フッターが横並びの flex アイテムにならないようにする。
+
+その他:
+
+- 静的アプリ（`public/` 配下のみ）。サーバコード・外部 API・ビルドツールは使わない
+- `public/index.html` を単一ファイルで完結させる（CSS/JS インライン可）
+- 雛形のスモークテスト（ページロード・ページエラーなし）は削除しない
+- README.md は削除しない
+
+## 保守の進め方
+
+1. 変更したい振る舞いを受け入れ条件として `tests/app.spec.ts` に先に書く（または既存テストを更新する）
+2. `public/index.html` を実装・修正する
+3. `npm test` と `npm run verify` を通す
+4. `npm run deploy` で Cloudflare Workers へデプロイする
